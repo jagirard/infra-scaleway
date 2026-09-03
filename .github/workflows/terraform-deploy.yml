@@ -1,0 +1,71 @@
+name: Terraform plan or apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Select apply explicitly to change Scaleway resources"
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - apply
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-scaleway-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: ${{ inputs.operation }} scaleway-dev
+    runs-on: ubuntu-latest
+    environment: scaleway-dev
+
+    defaults:
+      run:
+        working-directory: kapsule/00-kapsule
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      TF_IN_AUTOMATION: "true"
+      TF_STATE_BUCKET: ${{ vars.SCW_TF_STATE_BUCKET }}
+      TF_VAR_api_allowed_cidrs: ${{ vars.SCW_API_ALLOWED_CIDRS_JSON }}
+      TF_VAR_organization_id: ${{ vars.SCW_ORGANIZATION_ID }}
+      TF_VAR_project_id: ${{ vars.SCW_PROJECT_ID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v4.0.1
+        with:
+          terraform_version: "1.14.9"
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive ../..
+
+      - name: Initialize remote backend
+        run: >-
+          terraform init
+          -input=false
+          -backend-config=../environments/scw-dev-01/backend.tfvars.example
+          -backend-config="bucket=${TF_STATE_BUCKET}"
+
+      - name: Validate main stack
+        run: terraform validate
+
+      - name: Create execution plan
+        run: terraform plan -input=false -lock-timeout=10m -out=tfplan
+
+      - name: Apply execution plan
+        if: inputs.operation == 'apply'
+        run: terraform apply -input=false -lock-timeout=10m -auto-approve tfplan

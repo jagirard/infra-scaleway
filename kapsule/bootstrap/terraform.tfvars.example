@@ -1,0 +1,3 @@
+project_id       = "replace-with-scaleway-project-uuid"
+organization_id  = "replace-with-scaleway-organization-uuid"
+state_bucket_name = "replace-with-globally-unique-state-bucket-name"

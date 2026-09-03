@@ -1,0 +1,11 @@
+project_id      = "replace-with-scaleway-project-uuid"
+organization_id = "replace-with-scaleway-organization-uuid"
+
+kubernetes_version  = "1.36.1"
+private_network_cidr = "172.30.0.0/20"
+pod_cidr             = "172.31.0.0/16"
+service_cidr         = "172.29.0.0/20"
+
+api_allowed_cidrs = [
+  "198.51.100.10/32",
+]
