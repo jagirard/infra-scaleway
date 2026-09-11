@@ -24,11 +24,11 @@ resource "scaleway_k8s_acl" "main" {
   region     = var.region
 
   dynamic "acl_rules" {
-    for_each = toset(var.api_allowed_cidrs)
+    for_each = toset(concat(var.api_allowed_cidrs, ["${scaleway_vpc_public_gateway_ip.main.address}/32"]))
 
     content {
       ip          = acl_rules.value
-      description = "Authorized Terraform operator network"
+      description = acl_rules.value == "${scaleway_vpc_public_gateway_ip.main.address}/32" ? "NetBird Scaleway routing peer egress" : "Authorized Terraform operator network"
     }
   }
 }
