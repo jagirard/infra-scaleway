@@ -121,47 +121,53 @@ variable "gateway_type" {
 }
 
 variable "node_type" {
-  description = "Scaleway Instance type used by the Kapsule pool."
+  description = "Scaleway Instance type used by the Kapsule pool. Kapsule reserves roughly 1.1 GiB per node, so a DEV1-M exposes only 2274 Mi to pods. Changing this value forces the pool to be replaced."
   type        = string
   default     = "DEV1-M"
 
   validation {
-    condition     = var.node_type == "DEV1-M"
-    error_message = "This pilot is restricted to DEV1-M nodes."
+    condition     = contains(["DEV1-M", "DEV1-L", "DEV1-XL", "GP1-XS"], var.node_type)
+    error_message = "node_type must be one of DEV1-M, DEV1-L, DEV1-XL, GP1-XS."
   }
 }
 
 variable "pool_initial_size" {
-  description = "Initial number of nodes in the autoscaling pool."
+  description = "Initial number of nodes in the autoscaling pool. Must be at least pool_min_size to satisfy the pool precondition."
   type        = number
-  default     = 2
+  default     = 3
 
   validation {
-    condition     = var.pool_initial_size == 2
-    error_message = "The pilot pool initial size must be 2."
+    condition     = var.pool_initial_size >= 1 && var.pool_initial_size <= 6
+    error_message = "pool_initial_size must be between 1 and 6."
   }
 }
 
 variable "pool_min_size" {
-  description = "Minimum number of nodes in the autoscaling pool."
+  description = "Minimum number of nodes in the autoscaling pool. Sized so the whole application sequence is schedulable without waiting for a scale-up during Helm installs."
   type        = number
-  default     = 1
+  default     = 3
 
   validation {
-    condition     = var.pool_min_size == 1
-    error_message = "The pilot pool minimum size must be 1."
+    condition     = var.pool_min_size >= 1 && var.pool_min_size <= 6
+    error_message = "pool_min_size must be between 1 and 6."
   }
 }
 
 variable "pool_max_size" {
   description = "Maximum number of nodes in the autoscaling pool."
   type        = number
-  default     = 3
+  default     = 5
 
   validation {
-    condition     = var.pool_max_size == 3
-    error_message = "The pilot pool maximum size must be 3."
+    condition     = var.pool_max_size >= 1 && var.pool_max_size <= 6
+    error_message = "pool_max_size must be between 1 and 6."
   }
+}
+
+variable "autoscaler_disable_scale_down" {
+  description = "Freeze autoscaler scale-down. Set to true for the duration of a bootstrap or migration window, then back to false."
+  type        = bool
+  default     = false
 }
 
 variable "tags" {

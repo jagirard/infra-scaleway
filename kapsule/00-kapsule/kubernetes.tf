@@ -17,6 +17,22 @@ resource "scaleway_k8s_cluster" "main" {
   service_dns_ip              = cidrhost(var.service_cidr, 10)
   delete_additional_resources = false
   tags                        = var.tags
+
+  # Tuned for sequential Helm installs: a node added for one release must not be
+  # reclaimed while the next release is still installing. Both delays are aligned
+  # on the 20-minute per-release timeout used by the Onizuka bootstrap script,
+  # against autoscaler defaults of 10 minutes.
+  autoscaler_config {
+    disable_scale_down               = var.autoscaler_disable_scale_down
+    scale_down_delay_after_add       = "20m"
+    scale_down_unneeded_time         = "20m"
+    scale_down_utilization_threshold = 0.3
+    estimator                        = "binpacking"
+    expander                         = "least_waste"
+    balance_similar_node_groups      = true
+    ignore_daemonsets_utilization    = true
+    max_graceful_termination_sec     = 600
+  }
 }
 
 resource "scaleway_k8s_acl" "main" {
@@ -48,6 +64,19 @@ resource "scaleway_k8s_pool" "main" {
   region             = var.region
   zone               = var.zone
   tags               = var.tags
+
+  # max_unavailable = 0 is rejected by the Scaleway API, which constrains the value
+  # to 1-20, so surge-before-drain cannot be enforced here. With max_surge = 1 and
+  # max_unavailable = 1 the pool may drain a node while the surge node is still
+  # booting. A DEV1-M exposes 2274 Mi of allocatable memory (measured on all three
+  # nodes), so that window leaves 4548 Mi for roughly 4820 Mi of requests once the
+  # whole application sequence is installed: the evicted pods stay Pending until the
+  # surge node joins or the autoscaler adds one. Raise the pool to 4 nodes before a
+  # version upgrade to keep the degraded window above the requests.
+  upgrade_policy {
+    max_surge       = 1
+    max_unavailable = 1
+  }
 
   depends_on = [
     scaleway_k8s_acl.main,
