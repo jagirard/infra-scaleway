@@ -121,9 +121,9 @@ variable "gateway_type" {
 }
 
 variable "node_type" {
-  description = "Scaleway Instance type used by the Kapsule pool. Kapsule reserves roughly 1.1 GiB per node, so a DEV1-M exposes only 2274 Mi to pods. Changing this value forces the pool to be replaced."
+  description = "Scaleway Instance type used by the Kapsule pool. Kapsule reserves roughly 1.1 GiB per node. GP1-XS (~16 GiB RAM) matches Azure Standard_E2as_v5 allocatable memory. Changing this value forces the pool to be replaced."
   type        = string
-  default     = "DEV1-M"
+  default     = "GP1-XS"
 
   validation {
     condition     = contains(["DEV1-M", "DEV1-L", "DEV1-XL", "GP1-XS"], var.node_type)
@@ -134,7 +134,7 @@ variable "node_type" {
 variable "pool_initial_size" {
   description = "Initial number of nodes in the autoscaling pool. Must be at least pool_min_size to satisfy the pool precondition."
   type        = number
-  default     = 3
+  default     = 4
 
   validation {
     condition     = var.pool_initial_size >= 1 && var.pool_initial_size <= 6
@@ -145,7 +145,7 @@ variable "pool_initial_size" {
 variable "pool_min_size" {
   description = "Minimum number of nodes in the autoscaling pool. Sized so the whole application sequence is schedulable without waiting for a scale-up during Helm installs."
   type        = number
-  default     = 3
+  default     = 4
 
   validation {
     condition     = var.pool_min_size >= 1 && var.pool_min_size <= 6
@@ -156,7 +156,7 @@ variable "pool_min_size" {
 variable "pool_max_size" {
   description = "Maximum number of nodes in the autoscaling pool."
   type        = number
-  default     = 5
+  default     = 6
 
   validation {
     condition     = var.pool_max_size >= 1 && var.pool_max_size <= 6

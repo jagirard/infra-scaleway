@@ -68,11 +68,9 @@ resource "scaleway_k8s_pool" "main" {
   # max_unavailable = 0 is rejected by the Scaleway API, which constrains the value
   # to 1-20, so surge-before-drain cannot be enforced here. With max_surge = 1 and
   # max_unavailable = 1 the pool may drain a node while the surge node is still
-  # booting. A DEV1-M exposes 2274 Mi of allocatable memory (measured on all three
-  # nodes), so that window leaves 4548 Mi for roughly 4820 Mi of requests once the
-  # whole application sequence is installed: the evicted pods stay Pending until the
-  # surge node joins or the autoscaler adds one. Raise the pool to 4 nodes before a
-  # version upgrade to keep the degraded window above the requests.
+  # booting. GP1-XS exposes about 16 GiB RAM (~14–15 GiB allocatable after Kapsule
+  # reservation). Keep min_size at 4 so a degraded upgrade window still covers the
+  # Onizuka application sequence without waiting on a scale-up.
   upgrade_policy {
     max_surge       = 1
     max_unavailable = 1
