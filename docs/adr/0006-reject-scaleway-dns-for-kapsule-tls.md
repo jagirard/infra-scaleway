@@ -2,11 +2,15 @@
 
 - Status: Accepted
 - Date: 2026-09-13
+- Related: [ADR 0007](0007-biolevate-cloud-is-private-netbird-dns.md)
 
 ## Context
 
 `kapsule-scw-dev-01` needs TLS certificates for six public hosts under
-`scw-dev.biolevatecloud.com`. Two ACME challenge types were considered: HTTP-01, which
+`scw-dev.biolevatecloud.com`. This ADR covers that public zone only.
+`*.biolevate.cloud` is private Netbird DNS and is out of scope; see ADR 0007.
+
+Two ACME challenge types were considered: HTTP-01, which
 validates over the public ingress, and DNS-01, which validates by writing a TXT record.
 
 DNS-01 was attractive on paper: it does not depend on public exposure, it supports
