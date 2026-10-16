@@ -164,6 +164,21 @@ variable "pool_max_size" {
   }
 }
 
+variable "pool_node_labels" {
+  description = "Raw Kubernetes node labels applied by Kapsule to every node of the pool. Unlike tags, these keys are not prefixed with k8s.scaleway.com/, so they satisfy workload nodeAffinity rules that require a bare key such as NodeType."
+  type        = map(string)
+  default     = { NodeType = "apps" }
+
+  validation {
+    condition = alltrue([
+      for key, value in var.pool_node_labels :
+      can(regex("^([a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?/)?[A-Za-z0-9]([A-Za-z0-9_.-]{0,61}[A-Za-z0-9])?$", key)) &&
+      can(regex("^([A-Za-z0-9]([A-Za-z0-9_.-]{0,61}[A-Za-z0-9])?)?$", value))
+    ])
+    error_message = "pool_node_labels must use valid Kubernetes label keys and values."
+  }
+}
+
 variable "autoscaler_disable_scale_down" {
   description = "Freeze autoscaler scale-down. Set to true for the duration of a bootstrap or migration window, then back to false."
   type        = bool
