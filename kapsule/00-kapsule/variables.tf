@@ -159,8 +159,8 @@ variable "pool_max_size" {
   default     = 6
 
   validation {
-    condition     = var.pool_max_size >= 1 && var.pool_max_size <= 6
-    error_message = "pool_max_size must be between 1 and 6."
+    condition     = var.pool_max_size >= 1 && var.pool_max_size <= 10
+    error_message = "pool_max_size must be between 1 and 10."
   }
 }
 
