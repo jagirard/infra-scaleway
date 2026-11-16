@@ -1,0 +1,3 @@
+project_id              = "replace-with-scaleway-prod-project-uuid"
+organization_id         = "replace-with-scaleway-organization-uuid"
+state_bucket_project_id = "replace-with-project-uuid-that-owns-the-existing-state-bucket"

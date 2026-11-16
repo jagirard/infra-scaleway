@@ -31,6 +31,12 @@ jobs:
       - name: Validate bootstrap
         run: terraform -chdir=kapsule/bootstrap validate
 
+      - name: Initialize production identity bootstrap without backend
+        run: terraform -chdir=kapsule/bootstrap/prod init -backend=false -input=false
+
+      - name: Validate production identity bootstrap
+        run: terraform -chdir=kapsule/bootstrap/prod validate
+
       - name: Initialize main stack without backend
         run: terraform -chdir=kapsule/00-kapsule init -backend=false -input=false
 

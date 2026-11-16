@@ -30,3 +30,5 @@ terraform -chdir=kapsule/bootstrap apply bootstrap.tfplan
 ```
 
 See [ADR 0004](../../docs/adr/0004-bootstrap-remote-state-and-ci-identity.md) for the decision and consequences.
+
+The production identity is a separate local-state stack in [`prod/`](prod/README.md). It reuses this bucket and does not create another one.
