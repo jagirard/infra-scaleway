@@ -1,0 +1,39 @@
+environment     = "prod"
+project_id      = "replace-with-scaleway-prod-project-uuid"
+organization_id = "replace-with-scaleway-organization-uuid"
+
+cluster_name        = "kapsule-scw-prod-01"
+cluster_description = "Sovereign Scaleway Kapsule production cluster"
+
+kubernetes_version   = "1.36.1"
+private_network_cidr = "172.28.0.0/20"
+pod_cidr             = "172.27.0.0/16"
+service_cidr         = "172.26.0.0/20"
+
+gateway_type = "VPC-GW-S"
+node_type    = "GP1-XS"
+
+pool_min_size     = 0
+pool_initial_size = 0
+pool_max_size     = 0
+
+apps_pool = {
+  name         = "kapsule-scw-prod-02-workers"
+  node_type    = "GP1-M"
+  min_size     = 3
+  initial_size = 3
+  max_size     = 10
+  labels = {
+    NodeType = "apps"
+  }
+}
+
+api_allowed_cidrs = [
+  "198.51.100.10/32",
+]
+
+tags = [
+  "managed-by=terraform",
+  "environment=prod",
+  "purpose=sovereign-production",
+]

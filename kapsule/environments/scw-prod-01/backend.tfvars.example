@@ -1,0 +1,18 @@
+# Reuse the Object Storage bucket created by kapsule/bootstrap.
+# Do not create a second state bucket for production.
+bucket = "replace-with-existing-state-bucket-name"
+key    = "kapsule/scw-prod-01/terraform.tfstate"
+region = "fr-par"
+
+endpoints = {
+  s3 = "https://s3.fr-par.scw.cloud"
+}
+
+encrypt                     = true
+use_path_style              = true
+use_lockfile                = true
+skip_credentials_validation = true
+skip_region_validation      = true
+skip_requesting_account_id  = true
+skip_metadata_api_check     = true
+skip_s3_checksum            = true

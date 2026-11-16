@@ -4,6 +4,8 @@
 
 This runbook provisions and validates only the Scaleway development pilot. Stop if a plan contains Azure, NetBird, DNS, Helm, Onizuka, or any resource outside the intended Scaleway project.
 
+Do not use this procedure for `scw-prod-01`. Production uses a separate project, state key, and identity; follow [runbook-scw-prod-01.md](runbook-scw-prod-01.md).
+
 The target architecture is:
 
 - Region: `fr-par`

@@ -5,7 +5,7 @@ data "scaleway_k8s_version" "selected" {
 
 resource "scaleway_k8s_cluster" "main" {
   name                        = var.cluster_name
-  description                 = "Autonomous Scaleway Kapsule development pilot"
+  description                 = var.cluster_description
   project_id                  = var.project_id
   region                      = var.region
   type                        = "kapsule"
@@ -32,6 +32,33 @@ resource "scaleway_k8s_cluster" "main" {
     balance_similar_node_groups      = true
     ignore_daemonsets_utilization    = true
     max_graceful_termination_sec     = 600
+  }
+
+  lifecycle {
+    precondition {
+      condition = alltrue([
+        for cidr in [var.private_network_cidr, var.pod_cidr, var.service_cidr] :
+        (
+          tonumber(split(".", cidrhost(cidr, 0))[0]) == 10 &&
+          tonumber(split("/", cidr)[1]) >= 8
+          ) || (
+          tonumber(split(".", cidrhost(cidr, 0))[0]) == 192 &&
+          tonumber(split(".", cidrhost(cidr, 0))[1]) == 168 &&
+          tonumber(split("/", cidr)[1]) >= 16
+          ) || (
+          tonumber(split(".", cidrhost(cidr, 0))[0]) == 172 &&
+          tonumber(split(".", cidrhost(cidr, 0))[1]) >= 16 &&
+          tonumber(split(".", cidrhost(cidr, 0))[1]) <= 31 &&
+          tonumber(split("/", cidr)[1]) >= 12
+          ) || (
+          tonumber(split(".", cidrhost(cidr, 0))[0]) == 100 &&
+          tonumber(split(".", cidrhost(cidr, 0))[1]) >= 64 &&
+          tonumber(split(".", cidrhost(cidr, 0))[1]) <= 127 &&
+          tonumber(split("/", cidr)[1]) >= 10
+        )
+      ])
+      error_message = "Private, pod, and service CIDRs must stay inside RFC 1918 or RFC 6598."
+    }
   }
 }
 
@@ -73,9 +100,8 @@ resource "scaleway_k8s_pool" "main" {
   # max_unavailable = 0 is rejected by the Scaleway API, which constrains the value
   # to 1-20, so surge-before-drain cannot be enforced here. With max_surge = 1 and
   # max_unavailable = 1 the pool may drain a node while the surge node is still
-  # booting. GP1-XS exposes about 16 GiB RAM (~14–15 GiB allocatable after Kapsule
-  # reservation). Keep min_size at 4 so a degraded upgrade window still covers the
-  # Onizuka application sequence without waiting on a scale-up.
+  # booting. GP1-XS exposes about 16 GiB RAM (~14 GiB allocatable). Production keeps
+  # this pool at one node; workloads that need more memory run on the GP1-M pool.
   upgrade_policy {
     max_surge       = 1
     max_unavailable = 1
@@ -93,6 +119,69 @@ resource "scaleway_k8s_pool" "main" {
         var.pool_initial_size <= var.pool_max_size
       )
       error_message = "Pool sizing must satisfy min_size <= initial_size <= max_size."
+    }
+
+    precondition {
+      condition     = contains(var.tags, "environment=${var.environment}")
+      error_message = "tags must include environment=<environment>."
+    }
+
+    precondition {
+      condition = (
+        var.environment != "prod" ||
+        (
+          var.private_network_cidr != "172.30.0.0/20" &&
+          var.pod_cidr != "172.31.0.0/16" &&
+          var.service_cidr != "172.29.0.0/20"
+        )
+      )
+      error_message = "Production must not reuse the scw-dev-01 private, pod, or service CIDRs."
+    }
+  }
+}
+
+resource "scaleway_k8s_pool" "apps" {
+  count = var.apps_pool.name == "" ? 0 : 1
+
+  cluster_id         = scaleway_k8s_cluster.main.id
+  name               = var.apps_pool.name
+  node_type          = var.apps_pool.node_type
+  size               = var.apps_pool.initial_size
+  min_size           = var.apps_pool.min_size
+  max_size           = var.apps_pool.max_size
+  autoscaling        = true
+  autohealing        = true
+  container_runtime  = "containerd"
+  public_ip_disabled = true
+  security_group_id  = scaleway_instance_security_group.kapsule_nodes.id
+  region             = var.region
+  zone               = var.zone
+  tags               = var.tags
+  labels             = var.apps_pool.labels
+
+  upgrade_policy {
+    max_surge       = 1
+    max_unavailable = 1
+  }
+
+  depends_on = [
+    scaleway_k8s_acl.main,
+    scaleway_vpc_gateway_network.main,
+  ]
+
+  lifecycle {
+    # GP1-M is 16 vCPU / 64 GiB and can place three 16 GiB pods. size is the
+    # initial count only; the autoscaler owns it afterwards, up to max_size.
+    ignore_changes = [size]
+
+    precondition {
+      condition     = contains(var.tags, "environment=${var.environment}")
+      error_message = "tags must include environment=<environment>."
+    }
+
+    precondition {
+      condition     = contains(var.tags, "managed-by=terraform")
+      error_message = "tags must include managed-by=terraform."
     }
   }
 }

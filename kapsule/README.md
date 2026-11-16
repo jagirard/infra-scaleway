@@ -18,14 +18,16 @@ Azure, NetBird, private DNS, Helm, and Onizuka integrations are deferred to late
 
 ## Repository layout
 
-- `bootstrap/`: optional one-time local-state stack for the Object Storage backend and CI IAM application.
-- `00-kapsule/`: main Terraform stack for Kapsule and network dependencies.
+- `bootstrap/`: optional one-time local-state stack for the Object Storage backend and development IAM application.
+- `bootstrap/prod/`: separate local-state stack for the production IAM application. It reuses the existing state bucket.
+- `00-kapsule/`: shared Terraform stack for every Kapsule environment.
 - `environments/<env>/`: backend and variables per environment.
 - `scripts/`: post-deployment runtime validation.
 
 Known environments:
 
 - `scw-dev-01`
+- `scw-prod-01`
 
 ## Why bootstrap exists
 
@@ -128,6 +130,7 @@ The script obtains the sensitive kubeconfig without printing it, validates the a
 
 - The Kapsule control plane is public and ACL-filtered; it is not private.
 - Scaleway initially creates a default open ACL before Terraform replaces it with the explicit allowlist.
-- The current pilot has one worker pool in `fr-par-1`.
+- The development pilot has one worker pool in `fr-par-1`.
+- `scw-prod-01` stays in one zone, `fr-par-1`, and adds a second pool, `kapsule-scw-prod-02-workers` (`GP1-M`), beside the original `GP1-XS` pool. See [ADR 0008](../docs/adr/0008-single-zone-sovereign-production.md) and [the production runbook](../docs/runbook-scw-prod-01.md).
 - Inter-cloud connectivity and shared private DNS are not part of Lots 1 to 3.
 - Kubernetes-created load balancers and volumes are preserved when the cluster is deleted and require deliberate cleanup.

@@ -11,3 +11,4 @@ Architecture decisions are immutable once accepted. A superseding decision must 
 | [0005](0005-defer-intercloud-integration.md) | Defer inter-cloud integration beyond the autonomous pilot | Accepted |
 | [0006](0006-reject-scaleway-dns-for-kapsule-tls.md) | Reject Scaleway DNS and DNS-01 for public `*.biolevatecloud.com` TLS | Accepted |
 | [0007](0007-biolevate-cloud-is-private-netbird-dns.md) | `*.biolevate.cloud` is private Netbird DNS | Accepted |
+| [0008](0008-single-zone-sovereign-production.md) | Start sovereign production on one zone and one pool | Accepted |

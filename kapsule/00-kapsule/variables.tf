@@ -1,5 +1,16 @@
+variable "environment" {
+  description = "Deployment environment. Production requires a dedicated Scaleway project, Terraform state key, IAM identity, and CIDRs."
+  type        = string
+  default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "prod"], var.environment)
+    error_message = "environment must be dev or prod."
+  }
+}
+
 variable "project_id" {
-  description = "Scaleway project UUID hosting the development pilot."
+  description = "Scaleway project UUID hosting this Kapsule environment."
   type        = string
 
   validation {
@@ -48,6 +59,17 @@ variable "cluster_name" {
   validation {
     condition     = can(regex("^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$", var.cluster_name))
     error_message = "cluster_name must be a valid lowercase DNS label."
+  }
+}
+
+variable "cluster_description" {
+  description = "Description stored on the Kapsule cluster."
+  type        = string
+  default     = "Autonomous Scaleway Kapsule development pilot"
+
+  validation {
+    condition     = length(trimspace(var.cluster_description)) > 0
+    error_message = "cluster_description must not be empty."
   }
 }
 
@@ -137,8 +159,8 @@ variable "pool_initial_size" {
   default     = 4
 
   validation {
-    condition     = var.pool_initial_size >= 1 && var.pool_initial_size <= 6
-    error_message = "pool_initial_size must be between 1 and 6."
+    condition     = var.pool_initial_size >= 0 && var.pool_initial_size <= 6
+    error_message = "pool_initial_size must be between 0 and 6."
   }
 }
 
@@ -148,8 +170,8 @@ variable "pool_min_size" {
   default     = 4
 
   validation {
-    condition     = var.pool_min_size >= 1 && var.pool_min_size <= 6
-    error_message = "pool_min_size must be between 1 and 6."
+    condition     = var.pool_min_size >= 0 && var.pool_min_size <= 6
+    error_message = "pool_min_size must be between 0 and 6."
   }
 }
 
@@ -159,8 +181,8 @@ variable "pool_max_size" {
   default     = 6
 
   validation {
-    condition     = var.pool_max_size >= 1 && var.pool_max_size <= 10
-    error_message = "pool_max_size must be between 1 and 10."
+    condition     = var.pool_max_size >= 0 && var.pool_max_size <= 10
+    error_message = "pool_max_size must be between 0 and 10."
   }
 }
 
@@ -176,6 +198,44 @@ variable "pool_node_labels" {
       can(regex("^([A-Za-z0-9]([A-Za-z0-9_.-]{0,61}[A-Za-z0-9])?)?$", value))
     ])
     error_message = "pool_node_labels must use valid Kubernetes label keys and values."
+  }
+}
+
+variable "apps_pool" {
+  description = "Optional second worker pool. An empty name keeps the environment on the primary pool only. Production uses a GP1-M pool so pods with a 16 GiB memory limit can schedule."
+  type = object({
+    name         = string
+    node_type    = string
+    min_size     = number
+    initial_size = number
+    max_size     = number
+    labels       = map(string)
+  })
+  default = {
+    name         = ""
+    node_type    = "GP1-M"
+    min_size     = 3
+    initial_size = 3
+    max_size     = 10
+    labels = {
+      NodeType = "apps"
+    }
+  }
+
+  validation {
+    condition = (
+      var.apps_pool.name == "" ||
+      (
+        can(regex("^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$", var.apps_pool.name)) &&
+        var.apps_pool.node_type == "GP1-M" &&
+        var.apps_pool.min_size >= 1 &&
+        var.apps_pool.max_size <= 10 &&
+        var.apps_pool.min_size <= var.apps_pool.initial_size &&
+        var.apps_pool.initial_size <= var.apps_pool.max_size &&
+        lookup(var.apps_pool.labels, "NodeType", "") == "apps"
+      )
+    )
+    error_message = "apps_pool must be disabled with an empty name, or be a GP1-M pool with 1 <= min_size <= initial_size <= max_size <= 10 and label NodeType=apps."
   }
 }
 
