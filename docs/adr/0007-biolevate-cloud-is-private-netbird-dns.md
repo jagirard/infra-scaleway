@@ -43,8 +43,12 @@ For Kapsule tenant hosts under `*.scw-dev1.biolevate.cloud`:
    `*.scw-dev1`.
 2. Serve them on `nginx-internal`, whose Service is a Scaleway **private**
    LoadBalancer (`service.beta.kubernetes.io/scw-loadbalancer-private: "true"`).
-3. Resolve them only via Netbird split DNS / in-cluster CoreDNS hosts, pointing
-   at the private ingress.
+3. Resolve them via the **Azure private DNS** zone `biolevate.cloud`
+   (resource group `rg-hub`). Netbird split DNS for `biolevate.cloud` forwards
+   to Azure `168.63.129.16`; it does **not** use Kapsule CoreDNS or the
+   Scaleway dns-forwarder. The wildcard `*.scw-dev1` in that private zone must
+   point at the private LoadBalancer (`172.30.0.7` today). In-cluster CoreDNS
+   hosts remain a cluster-local override only.
 4. Do not use Let's Encrypt HTTP-01 for `biolevate.cloud`. HTTP-01 requires a
    publicly reachable name and would recreate the leak. Keep the already-issued
    TLS secret until a private issuance path exists; do not re-apply the
@@ -56,7 +60,9 @@ controller and keep HTTP-01 as decided in ADR 0006.
 ## Consequences
 
 - `elise.scw-dev1.biolevate.cloud` (and the other tenant hosts) no longer
-  resolve on the public Internet. Access requires Netbird.
+  resolve on the public Internet. Access requires Netbird, and the Azure
+  private-zone record must target the private LoadBalancer — leaving it on the
+  public IP produces NXDOMAIN publicly but 404 via Netbird.
 - Knowing the public LoadBalancer IP is not enough once the Ingress objects
   have left the public controller.
 - Certificate renewal for those names cannot use HTTP-01. The current secret
